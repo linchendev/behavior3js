@@ -1,0 +1,41 @@
+{
+  "name": "sequence-success",
+  "tree": {
+    "title": "Sequence Success",
+    "description": "Sequence returns success when all children succeed",
+    "root": "node-1",
+    "nodes": {
+      "node-1": {
+        "id": "node-1",
+        "name": "Sequence",
+        "title": "Root Sequence",
+        "children": ["node-2", "node-3"]
+      },
+      "node-2": {
+        "id": "node-2",
+        "name": "Succeeder",
+        "title": "First Success"
+      },
+      "node-3": {
+        "id": "node-3",
+        "name": "Succeeder",
+        "title": "Second Success"
+      }
+    }
+  },
+  "ticks": [
+    {
+      "target": {
+        "step": 1
+      }
+    }
+  ],
+  "compare": {
+    "status": true,
+    "treeMemory": {
+      "openNodes": true,
+      "nodeCount": true
+    },
+    "dump": true
+  }
+}

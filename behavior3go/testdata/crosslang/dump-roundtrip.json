@@ -1,0 +1,72 @@
+{
+  "name": "dump-roundtrip",
+  "tree": {
+    "title": "Dump Roundtrip",
+    "description": "Dump preserves the loaded tree structure",
+    "properties": {
+      "prop": "value",
+      "comp": {
+        "val1": 234,
+        "val2": "value"
+      }
+    },
+    "root": "node-1",
+    "nodes": {
+      "node-1": {
+        "id": "node-1",
+        "name": "Priority",
+        "title": "Node1",
+        "description": "Node 1 Description",
+        "children": ["node-2", "node-3"],
+        "properties": {
+          "key": "value"
+        }
+      },
+      "node-2": {
+        "id": "node-2",
+        "name": "Inverter",
+        "title": "Node2",
+        "description": "Node 2 Description",
+        "child": "node-4"
+      },
+      "node-3": {
+        "id": "node-3",
+        "name": "MemSequence",
+        "title": "Node3",
+        "description": "Node 3 Description",
+        "children": ["node-5"]
+      },
+      "node-4": {
+        "id": "node-4",
+        "name": "Wait",
+        "title": "Node4",
+        "description": "Node 4 Description",
+        "properties": {
+          "milliseconds": 0
+        }
+      },
+      "node-5": {
+        "id": "node-5",
+        "name": "Failer",
+        "title": "Node5",
+        "description": "Node 5 Description"
+      }
+    }
+  },
+  "ticks": [
+    {
+      "now": 1000,
+      "target": {
+        "step": 1
+      }
+    }
+  ],
+  "compare": {
+    "status": true,
+    "treeMemory": {
+      "openNodes": true,
+      "nodeCount": true
+    },
+    "dump": true
+  }
+}

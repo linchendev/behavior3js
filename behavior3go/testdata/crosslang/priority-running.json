@@ -1,0 +1,46 @@
+{
+  "name": "priority-running",
+  "tree": {
+    "title": "Priority Running",
+    "description": "Priority stops at the first non-failure child",
+    "root": "node-1",
+    "nodes": {
+      "node-1": {
+        "id": "node-1",
+        "name": "Priority",
+        "title": "Root Priority",
+        "children": ["node-2", "node-3", "node-4"]
+      },
+      "node-2": {
+        "id": "node-2",
+        "name": "Failer",
+        "title": "First Failure"
+      },
+      "node-3": {
+        "id": "node-3",
+        "name": "Runner",
+        "title": "Running Child"
+      },
+      "node-4": {
+        "id": "node-4",
+        "name": "Succeeder",
+        "title": "Unused Success"
+      }
+    }
+  },
+  "ticks": [
+    {
+      "target": {
+        "step": 1
+      }
+    }
+  ],
+  "compare": {
+    "status": true,
+    "treeMemory": {
+      "openNodes": true,
+      "nodeCount": true
+    },
+    "dump": true
+  }
+}

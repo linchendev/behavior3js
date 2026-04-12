@@ -1,0 +1,46 @@
+{
+  "name": "wait-time-window",
+  "tree": {
+    "title": "Wait Time Window",
+    "description": "Wait stays running until enough time has passed",
+    "root": "node-1",
+    "nodes": {
+      "node-1": {
+        "id": "node-1",
+        "name": "Wait",
+        "title": "Wait Node",
+        "properties": {
+          "milliseconds": 100
+        }
+      }
+    }
+  },
+  "ticks": [
+    {
+      "now": 1000,
+      "target": {
+        "step": 1
+      }
+    },
+    {
+      "now": 1099,
+      "target": {
+        "step": 2
+      }
+    },
+    {
+      "now": 1101,
+      "target": {
+        "step": 3
+      }
+    }
+  ],
+  "compare": {
+    "status": true,
+    "treeMemory": {
+      "openNodes": true,
+      "nodeCount": true
+    },
+    "dump": true
+  }
+}

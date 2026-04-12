@@ -1,0 +1,46 @@
+{
+  "name": "max-time-timeout",
+  "tree": {
+    "title": "MaxTime Timeout",
+    "description": "MaxTime fails after the configured timeout",
+    "root": "node-1",
+    "nodes": {
+      "node-1": {
+        "id": "node-1",
+        "name": "MaxTime",
+        "title": "MaxTime Decorator",
+        "properties": {
+          "maxTime": 15
+        },
+        "child": "node-2"
+      },
+      "node-2": {
+        "id": "node-2",
+        "name": "Runner",
+        "title": "Running Child"
+      }
+    }
+  },
+  "ticks": [
+    {
+      "now": 1000,
+      "target": {
+        "step": 1
+      }
+    },
+    {
+      "now": 1016,
+      "target": {
+        "step": 2
+      }
+    }
+  ],
+  "compare": {
+    "status": true,
+    "treeMemory": {
+      "openNodes": true,
+      "nodeCount": true
+    },
+    "dump": true
+  }
+}
