@@ -19,7 +19,7 @@ func NewRepeater(maxLoop int, child core.Node) *Repeater {
 }
 
 func (node *Repeater) Execute(tick *core.Tick) core.Status {
-	return node.GetBaseNode().ExecuteNode(tick, node)
+	return node.GetBaseNode().ExecuteNode(tick, node, node)
 }
 
 func (node *Repeater) Open(tick *core.Tick) {

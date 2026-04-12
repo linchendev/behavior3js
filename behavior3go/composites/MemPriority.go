@@ -16,7 +16,7 @@ func NewMemPriority(children ...core.Node) *MemPriority {
 }
 
 func (node *MemPriority) Execute(tick *core.Tick) core.Status {
-	return node.GetBaseNode().ExecuteNode(tick, node)
+	return node.GetBaseNode().ExecuteNode(tick, node, node)
 }
 
 func (node *MemPriority) Open(tick *core.Tick) {

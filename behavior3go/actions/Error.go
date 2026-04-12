@@ -13,7 +13,7 @@ func NewError() *Error {
 }
 
 func (node *Error) Execute(tick *core.Tick) core.Status {
-	return node.GetBaseNode().ExecuteNode(tick, node)
+	return node.GetBaseNode().ExecuteNode(tick, node, node)
 }
 
 func (node *Error) Tick(tick *core.Tick) core.Status {

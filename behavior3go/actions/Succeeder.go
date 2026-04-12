@@ -13,7 +13,7 @@ func NewSucceeder() *Succeeder {
 }
 
 func (node *Succeeder) Execute(tick *core.Tick) core.Status {
-	return node.GetBaseNode().ExecuteNode(tick, node)
+	return node.GetBaseNode().ExecuteNode(tick, node, node)
 }
 
 func (node *Succeeder) Tick(tick *core.Tick) core.Status {

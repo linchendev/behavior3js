@@ -16,7 +16,7 @@ func NewPriority(children ...core.Node) *Priority {
 }
 
 func (node *Priority) Execute(tick *core.Tick) core.Status {
-	return node.GetBaseNode().ExecuteNode(tick, node)
+	return node.GetBaseNode().ExecuteNode(tick, node, node)
 }
 
 func (node *Priority) Tick(tick *core.Tick) core.Status {

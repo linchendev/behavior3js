@@ -13,7 +13,7 @@ func NewRunner() *Runner {
 }
 
 func (node *Runner) Execute(tick *core.Tick) core.Status {
-	return node.GetBaseNode().ExecuteNode(tick, node)
+	return node.GetBaseNode().ExecuteNode(tick, node, node)
 }
 
 func (node *Runner) Tick(tick *core.Tick) core.Status {

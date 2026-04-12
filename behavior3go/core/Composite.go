@@ -39,7 +39,7 @@ func NewComposite(options ...CompositeOptions) *Composite {
 }
 
 func (node *Composite) Execute(tick *Tick) Status {
-	return node.BaseNode.ExecuteNode(tick, node)
+	return node.BaseNode.ExecuteNode(tick, node, node)
 }
 
 func (node *Composite) GetChildren() []Node {

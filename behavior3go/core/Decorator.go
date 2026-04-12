@@ -35,7 +35,7 @@ func NewDecorator(options ...DecoratorOptions) *Decorator {
 }
 
 func (node *Decorator) Execute(tick *Tick) Status {
-	return node.BaseNode.ExecuteNode(tick, node)
+	return node.BaseNode.ExecuteNode(tick, node, node)
 }
 
 func (node *Decorator) GetChild() Node {

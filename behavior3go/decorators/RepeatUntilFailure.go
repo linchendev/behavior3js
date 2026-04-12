@@ -19,7 +19,7 @@ func NewRepeatUntilFailure(maxLoop int, child core.Node) *RepeatUntilFailure {
 }
 
 func (node *RepeatUntilFailure) Execute(tick *core.Tick) core.Status {
-	return node.GetBaseNode().ExecuteNode(tick, node)
+	return node.GetBaseNode().ExecuteNode(tick, node, node)
 }
 
 func (node *RepeatUntilFailure) Open(tick *core.Tick) {

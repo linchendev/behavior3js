@@ -59,41 +59,41 @@ func (node *BaseNode) Close(tick *Tick) {}
 func (node *BaseNode) Exit(tick *Tick) {}
 
 func (node *BaseNode) Execute(tick *Tick) Status {
-	return node.ExecuteNode(tick, node)
+	return node.ExecuteNode(tick, node, node)
 }
 
 func (node *BaseNode) CloseNode(tick *Tick) {
-	node.CloseNodeWithCallbacks(tick, node)
+	node.CloseNodeWithCallbacks(tick, node, node)
 }
 
-func (node *BaseNode) ExecuteNode(tick *Tick, callbacks NodeCallbacks) Status {
+func (node *BaseNode) ExecuteNode(tick *Tick, current Node, callbacks NodeCallbacks) Status {
 	baseNode := callbacks.GetBaseNode()
 
-	tick.EnterNode(callbacks.(Node))
+	tick.EnterNode(current)
 	callbacks.Enter(tick)
 
 	if !boolValue(tick.Blackboard.Get("isOpen", tick.Tree.Id, baseNode.Id)) {
-		tick.OpenNode(callbacks.(Node))
+		tick.OpenNode(current)
 		tick.Blackboard.Set("isOpen", true, tick.Tree.Id, baseNode.Id)
 		callbacks.Open(tick)
 	}
 
-	tick.TickNode(callbacks.(Node))
+	tick.TickNode(current)
 	status := callbacks.Tick(tick)
 
 	if status != RUNNING {
-		node.CloseNodeWithCallbacks(tick, callbacks)
+		node.CloseNodeWithCallbacks(tick, current, callbacks)
 	}
 
-	tick.ExitNode(callbacks.(Node))
+	tick.ExitNode(current)
 	callbacks.Exit(tick)
 
 	return status
 }
 
-func (node *BaseNode) CloseNodeWithCallbacks(tick *Tick, callbacks NodeCallbacks) {
+func (node *BaseNode) CloseNodeWithCallbacks(tick *Tick, current Node, callbacks NodeCallbacks) {
 	baseNode := callbacks.GetBaseNode()
-	tick.CloseNode(callbacks.(Node))
+	tick.CloseNode(current)
 	tick.Blackboard.Set("isOpen", false, tick.Tree.Id, baseNode.Id)
 	callbacks.Close(tick)
 }

@@ -27,7 +27,7 @@ func NewMaxTime(maxTime int, child core.Node) *MaxTime {
 }
 
 func (node *MaxTime) Execute(tick *core.Tick) core.Status {
-	return node.GetBaseNode().ExecuteNode(tick, node)
+	return node.GetBaseNode().ExecuteNode(tick, node, node)
 }
 
 func (node *MaxTime) Open(tick *core.Tick) {

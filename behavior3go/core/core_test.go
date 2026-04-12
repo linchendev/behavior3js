@@ -72,7 +72,7 @@ func (node *testNode) Execute(tick *Tick) Status {
 	if node.executeFunc != nil {
 		return node.executeFunc(tick)
 	}
-	return node.GetBaseNode().ExecuteNode(tick, node)
+	return node.GetBaseNode().ExecuteNode(tick, node, node)
 }
 
 func (node *testNode) Enter(tick *Tick) { node.enterCount++ }

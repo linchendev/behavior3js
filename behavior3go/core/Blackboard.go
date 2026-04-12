@@ -2,24 +2,25 @@ package core
 
 type Blackboard struct {
 	baseMemory map[string]any
-	treeMemory map[string]map[string]any
+	treeMemory map[string]*treeMemory
 }
 
 func NewBlackboard() *Blackboard {
 	return &Blackboard{
 		baseMemory: map[string]any{},
-		treeMemory: map[string]map[string]any{},
+		treeMemory: map[string]*treeMemory{},
 	}
 }
 
-func (blackboard *Blackboard) getTreeMemory(treeScope string) map[string]any {
+func (blackboard *Blackboard) getTreeMemory(treeScope string) *treeMemory {
 	memory, ok := blackboard.treeMemory[treeScope]
 	if !ok {
-		memory = map[string]any{
-			"nodeMemory":     map[string]map[string]any{},
-			"openNodes":      []Node{},
-			"traversalDepth": 0,
-			"traversalCycle": 0,
+		memory = &treeMemory{
+			memory:         map[string]any{},
+			nodeMemory:     map[string]map[string]any{},
+			openNodes:      []Node{},
+			traversalDepth: 0,
+			traversalCycle: 0,
 		}
 		blackboard.treeMemory[treeScope] = memory
 	}
@@ -27,25 +28,11 @@ func (blackboard *Blackboard) getTreeMemory(treeScope string) map[string]any {
 	return memory
 }
 
-func (blackboard *Blackboard) getNodeMemory(treeMemory map[string]any, nodeScope string) map[string]any {
-	nodeMemory := treeMemory["nodeMemory"].(map[string]map[string]any)
-	memory, ok := nodeMemory[nodeScope]
+func (blackboard *Blackboard) getNodeMemory(treeMemory *treeMemory, nodeScope string) map[string]any {
+	memory, ok := treeMemory.nodeMemory[nodeScope]
 	if !ok {
 		memory = map[string]any{}
-		nodeMemory[nodeScope] = memory
-	}
-
-	return memory
-}
-
-func (blackboard *Blackboard) getMemory(treeScope string, nodeScope string) map[string]any {
-	memory := blackboard.baseMemory
-
-	if treeScope != "" {
-		memory = blackboard.getTreeMemory(treeScope)
-		if nodeScope != "" {
-			memory = blackboard.getNodeMemory(memory, nodeScope)
-		}
+		treeMemory.nodeMemory[nodeScope] = memory
 	}
 
 	return memory
@@ -61,8 +48,46 @@ func (blackboard *Blackboard) Set(key string, value any, scope ...string) any {
 		nodeScope = scope[1]
 	}
 
-	memory := blackboard.getMemory(treeScope, nodeScope)
-	memory[key] = value
+	if treeScope == "" {
+		blackboard.baseMemory[key] = value
+		return value
+	}
+
+	treeMemory := blackboard.getTreeMemory(treeScope)
+	if nodeScope != "" {
+		nodeMemory := blackboard.getNodeMemory(treeMemory, nodeScope)
+		nodeMemory[key] = value
+		return value
+	}
+
+	switch key {
+	case "nodeMemory":
+		if typed, ok := value.(map[string]map[string]any); ok {
+			treeMemory.nodeMemory = typed
+			return value
+		}
+	case "openNodes":
+		treeMemory.openNodes = toNodeSlice(value)
+		return value
+	case "traversalDepth":
+		if typed, ok := toInt(value); ok {
+			treeMemory.traversalDepth = typed
+			return value
+		}
+	case "traversalCycle":
+		if typed, ok := toInt(value); ok {
+			treeMemory.traversalCycle = typed
+			return value
+		}
+	case "nodeCount":
+		if typed, ok := toInt(value); ok {
+			treeMemory.nodeCount = typed
+			treeMemory.memory[key] = typed
+			return value
+		}
+	}
+
+	treeMemory.memory[key] = value
 	return value
 }
 
@@ -76,6 +101,28 @@ func (blackboard *Blackboard) Get(key string, scope ...string) any {
 		nodeScope = scope[1]
 	}
 
-	memory := blackboard.getMemory(treeScope, nodeScope)
-	return memory[key]
+	if treeScope == "" {
+		return blackboard.baseMemory[key]
+	}
+
+	treeMemory := blackboard.getTreeMemory(treeScope)
+	if nodeScope != "" {
+		nodeMemory := blackboard.getNodeMemory(treeMemory, nodeScope)
+		return nodeMemory[key]
+	}
+
+	switch key {
+	case "nodeMemory":
+		return treeMemory.nodeMemory
+	case "openNodes":
+		return treeMemory.openNodes
+	case "traversalDepth":
+		return treeMemory.traversalDepth
+	case "traversalCycle":
+		return treeMemory.traversalCycle
+	case "nodeCount":
+		return treeMemory.nodeCount
+	default:
+		return treeMemory.memory[key]
+	}
 }

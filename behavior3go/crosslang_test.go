@@ -2,11 +2,13 @@ package behavior3go_test
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"reflect"
 	"runtime"
+	"sync"
 	"testing"
 
 	b3 "github.com/behavior3/behavior3go"
@@ -48,6 +50,11 @@ type crosslangResult struct {
 		NodeCount int      `json:"nodeCount"`
 	} `json:"treeMemory"`
 	Dump map[string]any `json:"dump"`
+}
+
+type loadedFixture struct {
+	path    string
+	fixture crosslangFixture
 }
 
 type expectedFixtureResult struct {
@@ -97,58 +104,82 @@ var expectedResults = map[string]expectedFixtureResult{
 func repoPaths(t *testing.T) (string, string) {
 	t.Helper()
 
+	repoRoot, behavior3goDir, err := repoPathsRaw()
+	if err != nil {
+		t.Fatal(err)
+	}
+	return repoRoot, behavior3goDir
+}
+
+func repoPathsRaw() (string, string, error) {
 	_, filename, _, ok := runtime.Caller(0)
 	if !ok {
-		t.Fatal("unable to resolve test file path")
+		return "", "", os.ErrInvalid
 	}
 
 	behavior3goDir := filepath.Dir(filename)
 	repoRoot := filepath.Dir(behavior3goDir)
-	return repoRoot, behavior3goDir
+	return repoRoot, behavior3goDir, nil
 }
 
-func loadFixtures(t *testing.T) []struct {
-	path    string
-	fixture crosslangFixture
-} {
+var (
+	fixtureCacheOnce sync.Once
+	fixtureCache     []loadedFixture
+	fixtureCacheErr  error
+)
+
+func loadFixtures(t *testing.T) []loadedFixture {
 	t.Helper()
 
-	_, behavior3goDir := repoPaths(t)
-	pattern := filepath.Join(behavior3goDir, "testdata", "crosslang", "*.json")
-	paths, err := filepath.Glob(pattern)
+	fixtures, err := loadFixturesRaw()
 	if err != nil {
-		t.Fatalf("glob fixtures: %v", err)
+		t.Fatalf("load fixtures: %v", err)
 	}
-	if len(paths) == 0 {
-		t.Fatal("expected cross-language fixtures")
-	}
-
-	fixtures := make([]struct {
-		path    string
-		fixture crosslangFixture
-	}, 0, len(paths))
-
-	for _, path := range paths {
-		payload, err := os.ReadFile(path)
-		if err != nil {
-			t.Fatalf("read fixture %s: %v", path, err)
-		}
-
-		var fixture crosslangFixture
-		if err := json.Unmarshal(payload, &fixture); err != nil {
-			t.Fatalf("decode fixture %s: %v", path, err)
-		}
-
-		fixtures = append(fixtures, struct {
-			path    string
-			fixture crosslangFixture
-		}{
-			path:    path,
-			fixture: fixture,
-		})
-	}
-
 	return fixtures
+}
+
+func loadFixturesRaw() ([]loadedFixture, error) {
+	fixtureCacheOnce.Do(func() {
+		_, behavior3goDir, err := repoPathsRaw()
+		if err != nil {
+			fixtureCacheErr = err
+			return
+		}
+		pattern := filepath.Join(behavior3goDir, "testdata", "crosslang", "*.json")
+		paths, err := filepath.Glob(pattern)
+		if err != nil {
+			fixtureCacheErr = err
+			return
+		}
+		if len(paths) == 0 {
+			fixtureCacheErr = os.ErrNotExist
+			return
+		}
+
+		fixtures := make([]loadedFixture, 0, len(paths))
+		for _, path := range paths {
+			payload, err := os.ReadFile(path)
+			if err != nil {
+				fixtureCacheErr = err
+				return
+			}
+
+			var fixture crosslangFixture
+			if err := json.Unmarshal(payload, &fixture); err != nil {
+				fixtureCacheErr = err
+				return
+			}
+
+			fixtures = append(fixtures, loadedFixture{
+				path:    path,
+				fixture: fixture,
+			})
+		}
+
+		fixtureCache = fixtures
+	})
+
+	return fixtureCache, fixtureCacheErr
 }
 
 func applyBlackboardState(blackboard *b3.Blackboard, treeId string, state fixtureBlackboardState) {
@@ -253,28 +284,44 @@ func runGoFixture(t *testing.T, fixture crosslangFixture) crosslangResult {
 	return result
 }
 
-func runJSFixture(t *testing.T, fixturePath string) crosslangResult {
+func runJSFixturesBatch(t *testing.T, entries []loadedFixture) map[string]crosslangResult {
 	t.Helper()
 
-	repoRoot, _ := repoPaths(t)
+	repoRoot, _, err := repoPathsRaw()
+	if err != nil {
+		t.Fatal(err)
+	}
+	results, err := runJSFixturesBatchRaw(repoRoot, entries)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return results
+}
+
+func runJSFixturesBatchRaw(repoRoot string, entries []loadedFixture) (map[string]crosslangResult, error) {
 	if _, err := os.Stat(filepath.Join(repoRoot, "node_modules", "babel-register")); err != nil {
-		t.Fatalf("cross-language tests require npm install at repo root: %v", err)
+		return nil, err
 	}
 
-	command := exec.Command("node", "test/crosslang/runner.js", fixturePath)
+	args := []string{"test/crosslang/runner.js"}
+	for _, entry := range entries {
+		args = append(args, entry.path)
+	}
+
+	command := exec.Command("node", args...)
 	command.Dir = repoRoot
 
 	output, err := command.CombinedOutput()
 	if err != nil {
-		t.Fatalf("run js fixture %s: %v\n%s", fixturePath, err, string(output))
+		return nil, fmt.Errorf("node test/crosslang/runner.js: %w\n%s", err, string(output))
 	}
 
-	var result crosslangResult
-	if err := json.Unmarshal(output, &result); err != nil {
-		t.Fatalf("decode js result %s: %v\n%s", fixturePath, err, string(output))
+	var results map[string]crosslangResult
+	if err := json.Unmarshal(output, &results); err != nil {
+		return nil, fmt.Errorf("decode js result batch: %w\n%s", err, string(output))
 	}
 
-	return result
+	return results, nil
 }
 
 func TestCrosslangFixturesGoOnly(t *testing.T) {
@@ -304,11 +351,17 @@ func TestCrosslangFixturesGoOnly(t *testing.T) {
 }
 
 func TestCrosslangFixturesMatchJS(t *testing.T) {
-	for _, entry := range loadFixtures(t) {
+	entries := loadFixtures(t)
+	jsResults := runJSFixturesBatch(t, entries)
+
+	for _, entry := range entries {
 		entry := entry
 		t.Run(entry.fixture.Name, func(t *testing.T) {
 			goResult := runGoFixture(t, entry.fixture)
-			jsResult := runJSFixture(t, entry.path)
+			jsResult, ok := jsResults[entry.fixture.Name]
+			if !ok {
+				t.Fatalf("missing js result for fixture %s", entry.fixture.Name)
+			}
 
 			if entry.fixture.Compare.Status && !reflect.DeepEqual(goResult.Statuses, jsResult.Statuses) {
 				t.Fatalf("status mismatch: got %v want %v", goResult.Statuses, jsResult.Statuses)

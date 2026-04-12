@@ -32,5 +32,5 @@ func NewAction(options ...ActionOptions) *Action {
 }
 
 func (node *Action) Execute(tick *Tick) Status {
-	return node.BaseNode.ExecuteNode(tick, node)
+	return node.BaseNode.ExecuteNode(tick, node, node)
 }

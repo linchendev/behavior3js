@@ -16,7 +16,7 @@ func NewMemSequence(children ...core.Node) *MemSequence {
 }
 
 func (node *MemSequence) Execute(tick *core.Tick) core.Status {
-	return node.GetBaseNode().ExecuteNode(tick, node)
+	return node.GetBaseNode().ExecuteNode(tick, node, node)
 }
 
 func (node *MemSequence) Open(tick *core.Tick) {

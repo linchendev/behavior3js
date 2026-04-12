@@ -95,16 +95,32 @@ function runFixture(fixture) {
   };
 }
 
+function runFixtures(fixturePaths) {
+  const results = {};
+
+  fixturePaths.forEach((fixturePath) => {
+    const input = fs.readFileSync(path.resolve(fixturePath), 'utf8');
+    const fixture = JSON.parse(input);
+    results[fixture.name] = runFixture(fixture);
+  });
+
+  return results;
+}
+
 function main() {
-  const fixturePath = process.argv[2];
-  if (!fixturePath) {
-    throw new Error('fixture path is required');
+  const fixturePaths = process.argv.slice(2);
+  if (fixturePaths.length === 0) {
+    throw new Error('at least one fixture path is required');
   }
 
-  const input = fs.readFileSync(path.resolve(fixturePath), 'utf8');
-  const fixture = JSON.parse(input);
-  const result = runFixture(fixture);
-  process.stdout.write(JSON.stringify(result));
+  if (fixturePaths.length === 1) {
+    const input = fs.readFileSync(path.resolve(fixturePaths[0]), 'utf8');
+    const fixture = JSON.parse(input);
+    process.stdout.write(JSON.stringify(runFixture(fixture)));
+    return;
+  }
+
+  process.stdout.write(JSON.stringify(runFixtures(fixturePaths)));
 }
 
 main();

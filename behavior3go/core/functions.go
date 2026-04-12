@@ -33,6 +33,9 @@ func copyMap(source map[string]any) map[string]any {
 	if source == nil {
 		return nil
 	}
+	if len(source) == 0 {
+		return map[string]any{}
+	}
 
 	target := make(map[string]any, len(source))
 	for key, value := range source {

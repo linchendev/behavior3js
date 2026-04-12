@@ -16,7 +16,7 @@ func NewInverter(child core.Node) *Inverter {
 }
 
 func (node *Inverter) Execute(tick *core.Tick) core.Status {
-	return node.GetBaseNode().ExecuteNode(tick, node)
+	return node.GetBaseNode().ExecuteNode(tick, node, node)
 }
 
 func (node *Inverter) Tick(tick *core.Tick) core.Status {

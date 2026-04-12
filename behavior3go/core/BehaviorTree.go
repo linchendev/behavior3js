@@ -48,14 +48,15 @@ func (tree *BehaviorTree) Load(data *TreeData, names map[string]NodeConstructor)
 			err  error
 			ok   bool
 		)
+		properties := copyMap(spec.Properties)
 
 		if constructor, found := names[spec.Name]; found {
-			node, err = constructor(copyMap(spec.Properties))
+			node, err = constructor(properties)
 			if err != nil {
 				return err
 			}
 		} else {
-			node, ok, err = NewBuiltinNode(spec.Name, copyMap(spec.Properties))
+			node, ok, err = NewBuiltinNode(spec.Name, properties)
 			if err != nil {
 				return err
 			}
@@ -74,8 +75,8 @@ func (tree *BehaviorTree) Load(data *TreeData, names map[string]NodeConstructor)
 		if spec.Description != "" {
 			baseNode.Description = spec.Description
 		}
-		if spec.Properties != nil {
-			baseNode.Properties = copyMap(spec.Properties)
+		if properties != nil {
+			baseNode.Properties = properties
 		}
 
 		nodes[id] = node
@@ -134,6 +135,12 @@ func (tree *BehaviorTree) Dump() *TreeData {
 			Description: baseNode.Description,
 			Properties:  copyMap(baseNode.Properties),
 			Parameters:  copyMap(baseNode.Parameters),
+		}
+		if spec.Properties == nil {
+			spec.Properties = map[string]any{}
+		}
+		if spec.Parameters == nil {
+			spec.Parameters = map[string]any{}
 		}
 
 		nodeName := baseNode.Name
@@ -200,16 +207,13 @@ func (tree *BehaviorTree) Tick(target any, blackboard BlackboardLike) Status {
 		return 0
 	}
 
-	tick := NewTick()
-	tick.Debug = tree.Debug
-	tick.Target = target
-	tick.Blackboard = blackboard
-	tick.Tree = tree
+	tick := acquireTick(tree, tree.Debug, target, blackboard)
+	defer releaseTick(tick)
 
 	state := tree.Root.Execute(tick)
 
 	lastOpenNodes := toNodeSlice(blackboard.Get("openNodes", tree.Id))
-	currOpenNodes := append([]Node{}, tick.OpenNodes...)
+	currOpenNodes := cloneNodes(tick.OpenNodes)
 
 	start := 0
 	limit := len(lastOpenNodes)
@@ -232,4 +236,14 @@ func (tree *BehaviorTree) Tick(target any, blackboard BlackboardLike) Status {
 	blackboard.Set("nodeCount", tick.NodeCount, tree.Id)
 
 	return state
+}
+
+func cloneNodes(nodes []Node) []Node {
+	if len(nodes) == 0 {
+		return []Node{}
+	}
+
+	cloned := make([]Node, len(nodes))
+	copy(cloned, nodes)
+	return cloned
 }

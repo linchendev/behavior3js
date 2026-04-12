@@ -20,6 +20,15 @@ type NodeCallbacks interface {
 	Exit(tick *Tick)
 }
 
+type treeMemory struct {
+	memory         map[string]any
+	nodeMemory     map[string]map[string]any
+	openNodes      []Node
+	traversalDepth int
+	traversalCycle int
+	nodeCount      int
+}
+
 type CompositeNode interface {
 	Node
 	GetChildren() []Node

@@ -16,7 +16,7 @@ func NewSequence(children ...core.Node) *Sequence {
 }
 
 func (node *Sequence) Execute(tick *core.Tick) core.Status {
-	return node.GetBaseNode().ExecuteNode(tick, node)
+	return node.GetBaseNode().ExecuteNode(tick, node, node)
 }
 
 func (node *Sequence) Tick(tick *core.Tick) core.Status {

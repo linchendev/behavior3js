@@ -32,5 +32,5 @@ func NewCondition(options ...ConditionOptions) *Condition {
 }
 
 func (node *Condition) Execute(tick *Tick) Status {
-	return node.BaseNode.ExecuteNode(tick, node)
+	return node.BaseNode.ExecuteNode(tick, node, node)
 }

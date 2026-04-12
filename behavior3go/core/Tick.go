@@ -1,5 +1,7 @@
 package core
 
+import "sync"
+
 type Tick struct {
 	Tree       *BehaviorTree
 	Debug      any
@@ -9,11 +11,39 @@ type Tick struct {
 	NodeCount  int
 }
 
+var tickPool = sync.Pool{
+	New: func() any {
+		return &Tick{
+			OpenNodes: make([]Node, 0, 16),
+		}
+	},
+}
+
 func NewTick() *Tick {
 	return &Tick{
-		OpenNodes: []Node{},
+		OpenNodes: make([]Node, 0, 16),
 		NodeCount: 0,
 	}
+}
+
+func acquireTick(tree *BehaviorTree, debug any, target any, blackboard BlackboardLike) *Tick {
+	tick := tickPool.Get().(*Tick)
+	tick.Reset(tree, debug, target, blackboard)
+	return tick
+}
+
+func releaseTick(tick *Tick) {
+	tick.Reset(nil, nil, nil, nil)
+	tickPool.Put(tick)
+}
+
+func (tick *Tick) Reset(tree *BehaviorTree, debug any, target any, blackboard BlackboardLike) {
+	tick.Tree = tree
+	tick.Debug = debug
+	tick.Target = target
+	tick.Blackboard = blackboard
+	tick.OpenNodes = tick.OpenNodes[:0]
+	tick.NodeCount = 0
 }
 
 func (tick *Tick) EnterNode(node Node) {
