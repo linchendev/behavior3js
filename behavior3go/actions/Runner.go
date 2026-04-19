@@ -24,6 +24,13 @@ func newRunner(properties map[string]any) (core.Node, error) {
 	return NewRunner(), nil
 }
 
+func loadRunner(spec core.NodeData) (core.Node, error) {
+	node := &Runner{}
+	node.Action = *core.NewActionForLoad(spec.Id, core.ActionOptions{Name: "Runner", Properties: spec.Properties})
+	return node, nil
+}
+
 func init() {
 	core.Register("Runner", newRunner)
+	core.RegisterLoadConstructor("Runner", loadRunner)
 }

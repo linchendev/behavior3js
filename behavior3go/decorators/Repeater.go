@@ -54,6 +54,18 @@ func newRepeater(properties map[string]any) (core.Node, error) {
 	return NewRepeater(maxLoop, nil), nil
 }
 
+func loadRepeater(spec core.NodeData) (core.Node, error) {
+	maxLoop, _ := core.GetIntProperty(spec.Properties, "maxLoop", -1)
+	node := &Repeater{MaxLoop: maxLoop}
+	node.Decorator = *core.NewDecoratorForLoad(spec.Id, core.DecoratorOptions{
+		Name:       "Repeater",
+		Title:      "Repeat <maxLoop>x",
+		Properties: spec.Properties,
+	})
+	return node, nil
+}
+
 func init() {
 	core.Register("Repeater", newRepeater)
+	core.RegisterLoadConstructor("Repeater", loadRepeater)
 }

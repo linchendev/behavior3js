@@ -33,6 +33,13 @@ func newSequence(properties map[string]any) (core.Node, error) {
 	return NewSequence(), nil
 }
 
+func loadSequence(spec core.NodeData) (core.Node, error) {
+	node := &Sequence{}
+	node.Composite = *core.NewCompositeForLoad(spec.Id, core.CompositeOptions{Name: "Sequence", Properties: spec.Properties})
+	return node, nil
+}
+
 func init() {
 	core.Register("Sequence", newSequence)
+	core.RegisterLoadConstructor("Sequence", loadSequence)
 }

@@ -40,6 +40,18 @@ func newWait(properties map[string]any) (core.Node, error) {
 	return NewWait(milliseconds), nil
 }
 
+func loadWait(spec core.NodeData) (core.Node, error) {
+	milliseconds, _ := core.GetIntProperty(spec.Properties, "milliseconds", 0)
+	node := &Wait{EndTime: milliseconds}
+	node.Action = *core.NewActionForLoad(spec.Id, core.ActionOptions{
+		Name:       "Wait",
+		Title:      "Wait <milliseconds>ms",
+		Properties: spec.Properties,
+	})
+	return node, nil
+}
+
 func init() {
 	core.Register("Wait", newWait)
+	core.RegisterLoadConstructor("Wait", loadWait)
 }

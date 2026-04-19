@@ -31,6 +31,28 @@ func NewCondition(options ...ConditionOptions) *Condition {
 	return node
 }
 
+func NewConditionForLoad(id string, options ...ConditionOptions) *Condition {
+	config := ConditionOptions{
+		Name: "Condition",
+	}
+	if len(options) > 0 {
+		config = options[0]
+		if config.Name == "" {
+			config.Name = "Condition"
+		}
+	}
+
+	node := &Condition{}
+	node.BaseNode = NewBaseNodeForLoad(BaseNodeOptions{
+		ID:         id,
+		Category:   CONDITION,
+		Name:       config.Name,
+		Title:      config.Title,
+		Properties: config.Properties,
+	})
+	return node
+}
+
 func (node *Condition) Execute(tick *Tick) Status {
 	return node.BaseNode.ExecuteNode(tick, node, node)
 }

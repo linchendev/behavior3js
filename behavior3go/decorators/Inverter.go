@@ -38,6 +38,13 @@ func newInverter(properties map[string]any) (core.Node, error) {
 	return NewInverter(nil), nil
 }
 
+func loadInverter(spec core.NodeData) (core.Node, error) {
+	node := &Inverter{}
+	node.Decorator = *core.NewDecoratorForLoad(spec.Id, core.DecoratorOptions{Name: "Inverter", Properties: spec.Properties})
+	return node, nil
+}
+
 func init() {
 	core.Register("Inverter", newInverter)
+	core.RegisterLoadConstructor("Inverter", loadInverter)
 }

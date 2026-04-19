@@ -24,6 +24,13 @@ func newFailer(properties map[string]any) (core.Node, error) {
 	return NewFailer(), nil
 }
 
+func loadFailer(spec core.NodeData) (core.Node, error) {
+	node := &Failer{}
+	node.Action = *core.NewActionForLoad(spec.Id, core.ActionOptions{Name: "Failer", Properties: spec.Properties})
+	return node, nil
+}
+
 func init() {
 	core.Register("Failer", newFailer)
+	core.RegisterLoadConstructor("Failer", loadFailer)
 }

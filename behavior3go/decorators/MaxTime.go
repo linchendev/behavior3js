@@ -56,6 +56,21 @@ func newMaxTime(properties map[string]any) (core.Node, error) {
 	return NewMaxTime(maxTime, nil), nil
 }
 
+func loadMaxTime(spec core.NodeData) (core.Node, error) {
+	maxTime, ok := core.GetIntProperty(spec.Properties, "maxTime", 0)
+	if !ok || maxTime == 0 {
+		return nil, fmt.Errorf("maxTime parameter in MaxTime decorator is an obligatory parameter")
+	}
+	node := &MaxTime{MaxTime: maxTime}
+	node.Decorator = *core.NewDecoratorForLoad(spec.Id, core.DecoratorOptions{
+		Name:       "MaxTime",
+		Title:      "Max <maxTime>ms",
+		Properties: spec.Properties,
+	})
+	return node, nil
+}
+
 func init() {
 	core.Register("MaxTime", newMaxTime)
+	core.RegisterLoadConstructor("MaxTime", loadMaxTime)
 }

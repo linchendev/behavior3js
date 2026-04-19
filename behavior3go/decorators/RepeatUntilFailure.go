@@ -54,6 +54,18 @@ func newRepeatUntilFailure(properties map[string]any) (core.Node, error) {
 	return NewRepeatUntilFailure(maxLoop, nil), nil
 }
 
+func loadRepeatUntilFailure(spec core.NodeData) (core.Node, error) {
+	maxLoop, _ := core.GetIntProperty(spec.Properties, "maxLoop", -1)
+	node := &RepeatUntilFailure{MaxLoop: maxLoop}
+	node.Decorator = *core.NewDecoratorForLoad(spec.Id, core.DecoratorOptions{
+		Name:       "RepeatUntilFailure",
+		Title:      "Repeat Until Failure",
+		Properties: spec.Properties,
+	})
+	return node, nil
+}
+
 func init() {
 	core.Register("RepeatUntilFailure", newRepeatUntilFailure)
+	core.RegisterLoadConstructor("RepeatUntilFailure", loadRepeatUntilFailure)
 }

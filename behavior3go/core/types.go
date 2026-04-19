@@ -43,6 +43,8 @@ type DecoratorNode interface {
 
 type NodeConstructor func(properties map[string]any) (Node, error)
 
+type LoadNodeConstructor func(spec NodeData) (Node, error)
+
 type TreeData struct {
 	Title       string              `json:"title"`
 	Description string              `json:"description"`
@@ -70,9 +72,14 @@ type CustomNodeData struct {
 }
 
 var builtinConstructors = map[string]NodeConstructor{}
+var builtinLoadConstructors = map[string]LoadNodeConstructor{}
 
 func Register(name string, constructor NodeConstructor) {
 	builtinConstructors[name] = constructor
+}
+
+func RegisterLoadConstructor(name string, constructor LoadNodeConstructor) {
+	builtinLoadConstructors[name] = constructor
 }
 
 func IsBuiltinNode(name string) bool {
@@ -90,5 +97,37 @@ func NewBuiltinNode(name string, properties map[string]any) (Node, bool, error) 
 	if err != nil {
 		return nil, true, err
 	}
+	return node, true, nil
+}
+
+func newBuiltinNodeForLoad(spec NodeData) (Node, bool, error) {
+	constructor, ok := builtinLoadConstructors[spec.Name]
+	if ok {
+		node, err := constructor(spec)
+		if err != nil {
+			return nil, true, err
+		}
+		return node, true, nil
+	}
+
+	node, found, err := NewBuiltinNode(spec.Name, clonePropertiesForLoad(spec.Properties))
+	if err != nil || !found {
+		return node, found, err
+	}
+
+	baseNode := node.GetBaseNode()
+	if spec.Id != "" {
+		baseNode.Id = spec.Id
+	}
+	if spec.Title != "" {
+		baseNode.Title = spec.Title
+	}
+	if spec.Description != "" {
+		baseNode.Description = spec.Description
+	}
+	if len(spec.Properties) > 0 {
+		baseNode.Properties = clonePropertiesForLoad(spec.Properties)
+	}
+
 	return node, true, nil
 }

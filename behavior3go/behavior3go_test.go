@@ -196,3 +196,67 @@ func TestDumpJSONModel(t *testing.T) {
 		t.Fatal("action node should not dump child relationships")
 	}
 }
+
+func TestLoadKeepsNodePropertiesIsolatedFromInput(t *testing.T) {
+	tree := b3.NewBehaviorTree()
+	data := &b3.TreeData{
+		Title: "Wait Tree",
+		Root:  "1",
+		Nodes: map[string]b3.NodeData{
+			"1": {
+				Id:    "1",
+				Name:  "Wait",
+				Title: "Wait Node",
+				Properties: map[string]any{
+					"milliseconds": 100,
+				},
+			},
+		},
+	}
+
+	if err := tree.Load(data, nil); err != nil {
+		t.Fatalf("load should succeed: %v", err)
+	}
+
+	data.Nodes["1"].Properties["milliseconds"] = 250
+
+	waitNode, ok := tree.Root.(*b3.Wait)
+	if !ok {
+		t.Fatal("root should be wait")
+	}
+	if waitNode.Properties["milliseconds"] != 100 {
+		t.Fatal("loaded node properties should not be mutated through input TreeData reuse")
+	}
+}
+
+func TestLoadInitializesWritableParameters(t *testing.T) {
+	tree := b3.NewBehaviorTree()
+	data := &b3.TreeData{
+		Title: "Wait Tree",
+		Root:  "1",
+		Nodes: map[string]b3.NodeData{
+			"1": {
+				Id:    "1",
+				Name:  "Wait",
+				Title: "Wait Node",
+				Properties: map[string]any{
+					"milliseconds": 100,
+				},
+			},
+		},
+	}
+
+	if err := tree.Load(data, nil); err != nil {
+		t.Fatalf("load should succeed: %v", err)
+	}
+
+	waitNode, ok := tree.Root.(*b3.Wait)
+	if !ok {
+		t.Fatal("root should be wait")
+	}
+
+	waitNode.Parameters["custom"] = "value"
+	if waitNode.Parameters["custom"] != "value" {
+		t.Fatal("loaded node parameters should remain writable")
+	}
+}

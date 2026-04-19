@@ -89,8 +89,20 @@ type closableNode struct {
 	closeCount int
 }
 
+type runningBranchNode struct {
+	BaseNode
+	branch Node
+}
+
 func newClosableNode(id string) *closableNode {
 	node := &closableNode{}
+	node.BaseNode = NewBaseNode(BaseNodeOptions{Name: id})
+	node.Id = id
+	return node
+}
+
+func newRunningBranchNode(id string, branch Node) *runningBranchNode {
+	node := &runningBranchNode{branch: branch}
 	node.BaseNode = NewBaseNode(BaseNodeOptions{Name: id})
 	node.Id = id
 	return node
@@ -103,6 +115,15 @@ func (node *closableNode) Execute(tick *Tick) Status {
 
 func (node *closableNode) CloseNode(tick *Tick) {
 	node.closeCount++
+}
+
+func (node *runningBranchNode) Execute(tick *Tick) Status {
+	return node.GetBaseNode().ExecuteNode(tick, node, node)
+}
+
+func (node *runningBranchNode) Tick(tick *Tick) Status {
+	tick.EnterNode(node.branch)
+	return RUNNING
 }
 
 func TestBlackboard(t *testing.T) {
@@ -295,5 +316,63 @@ func TestBehaviorTreeClosesOpenedNodes(t *testing.T) {
 	}
 	if node1.closeCount != 0 || node2.closeCount != 0 || node3.closeCount != 0 {
 		t.Fatal("shared open path should remain open")
+	}
+}
+
+func TestBehaviorTreePreservesRunningBranchSwitchOpenNodes(t *testing.T) {
+	tree := NewBehaviorTree()
+	tree.Id = "tree1"
+
+	blackboard := NewBlackboard()
+	oldBranch := newClosableNode("old")
+	newBranch := newClosableNode("new")
+	root := newRunningBranchNode("root", newBranch)
+
+	tree.Root = root
+	blackboard.Set("openNodes", []Node{root, oldBranch}, "tree1")
+
+	tree.Tick(nil, blackboard)
+
+	openNodes, ok := blackboard.Get("openNodes", "tree1").([]Node)
+	if !ok {
+		t.Fatal("open nodes should be stored as []Node")
+	}
+	if len(openNodes) != 2 {
+		t.Fatalf("expected two open nodes after branch switch, got %d", len(openNodes))
+	}
+	if openNodes[0] != root || openNodes[1] != newBranch {
+		t.Fatal("running branch switch should keep the new open branch")
+	}
+	if oldBranch.closeCount != 1 {
+		t.Fatal("stale running branch should close exactly once")
+	}
+}
+
+func TestBehaviorTreePreservesRunningPrefixWhenPreviousPathIsLonger(t *testing.T) {
+	tree := NewBehaviorTree()
+	tree.Id = "tree1"
+
+	blackboard := NewBlackboard()
+	sharedBranch := newClosableNode("shared")
+	staleLeaf := newClosableNode("stale")
+	root := newRunningBranchNode("root", sharedBranch)
+
+	tree.Root = root
+	blackboard.Set("openNodes", []Node{root, sharedBranch, staleLeaf}, "tree1")
+
+	tree.Tick(nil, blackboard)
+
+	openNodes, ok := blackboard.Get("openNodes", "tree1").([]Node)
+	if !ok {
+		t.Fatal("open nodes should be stored as []Node")
+	}
+	if len(openNodes) != 2 {
+		t.Fatalf("expected two open nodes after prefix shrink, got %d", len(openNodes))
+	}
+	if openNodes[0] != root || openNodes[1] != sharedBranch {
+		t.Fatal("current running prefix should remain intact when closing stale suffix")
+	}
+	if staleLeaf.closeCount != 1 {
+		t.Fatal("stale suffix node should close exactly once")
 	}
 }

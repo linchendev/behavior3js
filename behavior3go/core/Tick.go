@@ -7,6 +7,7 @@ type Tick struct {
 	Debug      any
 	Target     any
 	Blackboard BlackboardLike
+	blackboard *Blackboard
 	OpenNodes  []Node
 	NodeCount  int
 }
@@ -42,6 +43,7 @@ func (tick *Tick) Reset(tree *BehaviorTree, debug any, target any, blackboard Bl
 	tick.Debug = debug
 	tick.Target = target
 	tick.Blackboard = blackboard
+	tick.blackboard, _ = blackboard.(*Blackboard)
 	tick.OpenNodes = tick.OpenNodes[:0]
 	tick.NodeCount = 0
 }

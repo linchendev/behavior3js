@@ -62,6 +62,21 @@ func newLimiter(properties map[string]any) (core.Node, error) {
 	return NewLimiter(maxLoop, nil), nil
 }
 
+func loadLimiter(spec core.NodeData) (core.Node, error) {
+	maxLoop, ok := core.GetIntProperty(spec.Properties, "maxLoop", 0)
+	if !ok || maxLoop == 0 {
+		return nil, fmt.Errorf("maxLoop parameter in Limiter decorator is an obligatory parameter")
+	}
+	node := &Limiter{MaxLoop: maxLoop}
+	node.Decorator = *core.NewDecoratorForLoad(spec.Id, core.DecoratorOptions{
+		Name:       "Limiter",
+		Title:      "Limit <maxLoop> Activations",
+		Properties: spec.Properties,
+	})
+	return node, nil
+}
+
 func init() {
 	core.Register("Limiter", newLimiter)
+	core.RegisterLoadConstructor("Limiter", loadLimiter)
 }

@@ -24,6 +24,13 @@ func newError(properties map[string]any) (core.Node, error) {
 	return NewError(), nil
 }
 
+func loadError(spec core.NodeData) (core.Node, error) {
+	node := &Error{}
+	node.Action = *core.NewActionForLoad(spec.Id, core.ActionOptions{Name: "Error", Properties: spec.Properties})
+	return node, nil
+}
+
 func init() {
 	core.Register("Error", newError)
+	core.RegisterLoadConstructor("Error", loadError)
 }

@@ -33,6 +33,13 @@ func newPriority(properties map[string]any) (core.Node, error) {
 	return NewPriority(), nil
 }
 
+func loadPriority(spec core.NodeData) (core.Node, error) {
+	node := &Priority{}
+	node.Composite = *core.NewCompositeForLoad(spec.Id, core.CompositeOptions{Name: "Priority", Properties: spec.Properties})
+	return node, nil
+}
+
 func init() {
 	core.Register("Priority", newPriority)
+	core.RegisterLoadConstructor("Priority", loadPriority)
 }

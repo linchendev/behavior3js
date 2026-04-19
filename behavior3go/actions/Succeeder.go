@@ -24,6 +24,13 @@ func newSucceeder(properties map[string]any) (core.Node, error) {
 	return NewSucceeder(), nil
 }
 
+func loadSucceeder(spec core.NodeData) (core.Node, error) {
+	node := &Succeeder{}
+	node.Action = *core.NewActionForLoad(spec.Id, core.ActionOptions{Name: "Succeeder", Properties: spec.Properties})
+	return node, nil
+}
+
 func init() {
 	core.Register("Succeeder", newSucceeder)
+	core.RegisterLoadConstructor("Succeeder", loadSucceeder)
 }

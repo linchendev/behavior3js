@@ -45,6 +45,13 @@ func newMemPriority(properties map[string]any) (core.Node, error) {
 	return NewMemPriority(), nil
 }
 
+func loadMemPriority(spec core.NodeData) (core.Node, error) {
+	node := &MemPriority{}
+	node.Composite = *core.NewCompositeForLoad(spec.Id, core.CompositeOptions{Name: "MemPriority", Properties: spec.Properties})
+	return node, nil
+}
+
 func init() {
 	core.Register("MemPriority", newMemPriority)
+	core.RegisterLoadConstructor("MemPriority", loadMemPriority)
 }

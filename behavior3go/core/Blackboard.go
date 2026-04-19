@@ -38,6 +38,32 @@ func (blackboard *Blackboard) getNodeMemory(treeMemory *treeMemory, nodeScope st
 	return memory
 }
 
+func (blackboard *Blackboard) isNodeOpen(treeScope string, nodeScope string) bool {
+	treeMemory := blackboard.getTreeMemory(treeScope)
+	nodeMemory := blackboard.getNodeMemory(treeMemory, nodeScope)
+	return boolValue(nodeMemory["isOpen"])
+}
+
+func (blackboard *Blackboard) setNodeOpen(treeScope string, nodeScope string, value bool) {
+	treeMemory := blackboard.getTreeMemory(treeScope)
+	nodeMemory := blackboard.getNodeMemory(treeMemory, nodeScope)
+	nodeMemory["isOpen"] = value
+}
+
+func (blackboard *Blackboard) getOpenNodes(treeScope string) []Node {
+	return blackboard.getTreeMemory(treeScope).openNodes
+}
+
+func (blackboard *Blackboard) setOpenNodes(treeScope string, openNodes []Node) {
+	blackboard.getTreeMemory(treeScope).openNodes = openNodes
+}
+
+func (blackboard *Blackboard) setNodeCount(treeScope string, count int) {
+	treeMemory := blackboard.getTreeMemory(treeScope)
+	treeMemory.nodeCount = count
+	treeMemory.memory["nodeCount"] = count
+}
+
 func (blackboard *Blackboard) Set(key string, value any, scope ...string) any {
 	treeScope := ""
 	nodeScope := ""

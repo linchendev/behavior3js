@@ -38,6 +38,29 @@ func NewComposite(options ...CompositeOptions) *Composite {
 	return node
 }
 
+func NewCompositeForLoad(id string, options ...CompositeOptions) *Composite {
+	config := CompositeOptions{
+		Name: "Composite",
+	}
+	if len(options) > 0 {
+		config = options[0]
+		if config.Name == "" {
+			config.Name = "Composite"
+		}
+	}
+
+	node := &Composite{}
+	node.BaseNode = NewBaseNodeForLoad(BaseNodeOptions{
+		ID:         id,
+		Category:   COMPOSITE,
+		Name:       config.Name,
+		Title:      config.Title,
+		Properties: config.Properties,
+	})
+	node.Children = config.Children
+	return node
+}
+
 func (node *Composite) Execute(tick *Tick) Status {
 	return node.BaseNode.ExecuteNode(tick, node, node)
 }

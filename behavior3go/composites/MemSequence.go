@@ -45,6 +45,13 @@ func newMemSequence(properties map[string]any) (core.Node, error) {
 	return NewMemSequence(), nil
 }
 
+func loadMemSequence(spec core.NodeData) (core.Node, error) {
+	node := &MemSequence{}
+	node.Composite = *core.NewCompositeForLoad(spec.Id, core.CompositeOptions{Name: "MemSequence", Properties: spec.Properties})
+	return node, nil
+}
+
 func init() {
 	core.Register("MemSequence", newMemSequence)
+	core.RegisterLoadConstructor("MemSequence", loadMemSequence)
 }

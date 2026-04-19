@@ -26,9 +26,6 @@ func (tree *BehaviorTree) Load(data *TreeData, names map[string]NodeConstructor)
 	if data == nil {
 		return nil
 	}
-	if names == nil {
-		names = map[string]NodeConstructor{}
-	}
 
 	if data.Title != "" {
 		tree.Title = data.Title
@@ -40,7 +37,7 @@ func (tree *BehaviorTree) Load(data *TreeData, names map[string]NodeConstructor)
 		tree.Properties = copyMap(data.Properties)
 	}
 
-	nodes := map[string]Node{}
+	nodes := make(map[string]Node, len(data.Nodes))
 
 	for id, spec := range data.Nodes {
 		var (
@@ -48,15 +45,28 @@ func (tree *BehaviorTree) Load(data *TreeData, names map[string]NodeConstructor)
 			err  error
 			ok   bool
 		)
-		properties := copyMap(spec.Properties)
 
 		if constructor, found := names[spec.Name]; found {
+			properties := clonePropertiesForLoad(spec.Properties)
 			node, err = constructor(properties)
 			if err != nil {
 				return err
 			}
+			baseNode := node.GetBaseNode()
+			if spec.Id != "" {
+				baseNode.Id = spec.Id
+			}
+			if spec.Title != "" {
+				baseNode.Title = spec.Title
+			}
+			if spec.Description != "" {
+				baseNode.Description = spec.Description
+			}
+			if properties != nil {
+				baseNode.Properties = properties
+			}
 		} else {
-			node, ok, err = NewBuiltinNode(spec.Name, properties)
+			node, ok, err = newBuiltinNodeForLoad(spec)
 			if err != nil {
 				return err
 			}
@@ -75,8 +85,8 @@ func (tree *BehaviorTree) Load(data *TreeData, names map[string]NodeConstructor)
 		if spec.Description != "" {
 			baseNode.Description = spec.Description
 		}
-		if properties != nil {
-			baseNode.Properties = properties
+		if len(spec.Properties) > 0 && baseNode.Properties == nil {
+			baseNode.Properties = clonePropertiesForLoad(spec.Properties)
 		}
 
 		nodes[id] = node
@@ -212,30 +222,68 @@ func (tree *BehaviorTree) Tick(target any, blackboard BlackboardLike) Status {
 
 	state := tree.Root.Execute(tick)
 
-	lastOpenNodes := toNodeSlice(blackboard.Get("openNodes", tree.Id))
-	currOpenNodes := cloneNodes(tick.OpenNodes)
+	if tick.blackboard != nil {
+		lastOpenNodes := tick.blackboard.getOpenNodes(tree.Id)
+		currOpenNodes := snapshotOpenNodesForClose(lastOpenNodes, tick.OpenNodes)
+		tree.closeStaleOpenNodes(tick, lastOpenNodes, currOpenNodes)
+		if tree.shouldReuseOpenNodes(lastOpenNodes, currOpenNodes) {
+			tick.blackboard.setNodeCount(tree.Id, tick.NodeCount)
+			return state
+		}
+		tick.blackboard.setOpenNodes(tree.Id, cloneNodes(currOpenNodes))
+		tick.blackboard.setNodeCount(tree.Id, tick.NodeCount)
+		return state
+	}
 
-	start := 0
+	lastOpenNodes := toNodeSlice(blackboard.Get("openNodes", tree.Id))
+	currOpenNodes := snapshotOpenNodesForClose(lastOpenNodes, tick.OpenNodes)
+	tree.closeStaleOpenNodes(tick, lastOpenNodes, currOpenNodes)
+	if tree.shouldReuseOpenNodes(lastOpenNodes, currOpenNodes) {
+		blackboard.Set("nodeCount", tick.NodeCount, tree.Id)
+		return state
+	}
+	blackboard.Set("openNodes", cloneNodes(currOpenNodes), tree.Id)
+	blackboard.Set("nodeCount", tick.NodeCount, tree.Id)
+
+	return state
+}
+
+func (tree *BehaviorTree) closeStaleOpenNodes(tick *Tick, lastOpenNodes []Node, currOpenNodes []Node) {
+	start := sharedOpenPrefixLength(lastOpenNodes, currOpenNodes)
+	for i := len(lastOpenNodes) - 1; i >= start; i-- {
+		lastOpenNodes[i].CloseNode(tick)
+	}
+}
+
+func (tree *BehaviorTree) shouldReuseOpenNodes(lastOpenNodes []Node, currOpenNodes []Node) bool {
+	if len(lastOpenNodes) != len(currOpenNodes) {
+		return false
+	}
+	if len(lastOpenNodes) == 0 {
+		return true
+	}
+	return lastOpenNodes[len(lastOpenNodes)-1] == currOpenNodes[len(currOpenNodes)-1]
+}
+
+func sharedOpenPrefixLength(lastOpenNodes []Node, currOpenNodes []Node) int {
 	limit := len(lastOpenNodes)
 	if len(currOpenNodes) < limit {
 		limit = len(currOpenNodes)
 	}
 
-	for i := 0; i < limit; i++ {
-		start = i + 1
-		if lastOpenNodes[i] != currOpenNodes[i] {
-			break
-		}
+	index := 0
+	for index < limit && lastOpenNodes[index] == currOpenNodes[index] {
+		index++
 	}
+	return index
+}
 
-	for i := len(lastOpenNodes) - 1; i >= start; i-- {
-		lastOpenNodes[i].CloseNode(tick)
+func snapshotOpenNodesForClose(lastOpenNodes []Node, currOpenNodes []Node) []Node {
+	sharedPrefix := sharedOpenPrefixLength(lastOpenNodes, currOpenNodes)
+	if sharedPrefix < len(lastOpenNodes) {
+		return cloneNodes(currOpenNodes)
 	}
-
-	blackboard.Set("openNodes", currOpenNodes, tree.Id)
-	blackboard.Set("nodeCount", tick.NodeCount, tree.Id)
-
-	return state
+	return currOpenNodes
 }
 
 func cloneNodes(nodes []Node) []Node {

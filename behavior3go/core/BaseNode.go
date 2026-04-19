@@ -1,6 +1,7 @@
 package core
 
 type BaseNodeOptions struct {
+	ID          string
 	Category    string
 	Name        string
 	Title       string
@@ -18,15 +19,32 @@ type BaseNode struct {
 	Parameters  map[string]any
 }
 
-func NewBaseNode(options BaseNodeOptions) BaseNode {
+type baseNodeConfig struct {
+	generateID          bool
+	cloneProperties     bool
+	initializeParams    bool
+	initializeEmptyMaps bool
+}
+
+func newBaseNode(options BaseNodeOptions, config baseNodeConfig) BaseNode {
 	node := BaseNode{
-		Id:          createUUID(),
+		Id:          options.ID,
 		Category:    options.Category,
 		Name:        options.Name,
 		Title:       options.Title,
 		Description: options.Description,
-		Properties:  copyMap(options.Properties),
-		Parameters:  map[string]any{},
+		Properties:  options.Properties,
+		Parameters:  nil,
+	}
+
+	if node.Id == "" && config.generateID {
+		node.Id = createUUID()
+	}
+	if config.cloneProperties {
+		node.Properties = copyMap(options.Properties)
+	}
+	if config.initializeParams {
+		node.Parameters = map[string]any{}
 	}
 
 	if node.Title == "" {
@@ -35,11 +53,29 @@ func NewBaseNode(options BaseNodeOptions) BaseNode {
 	if node.Description == "" {
 		node.Description = ""
 	}
-	if node.Properties == nil {
+	if config.initializeEmptyMaps && node.Properties == nil {
 		node.Properties = map[string]any{}
 	}
 
 	return node
+}
+
+func NewBaseNode(options BaseNodeOptions) BaseNode {
+	return newBaseNode(options, baseNodeConfig{
+		generateID:          true,
+		cloneProperties:     true,
+		initializeParams:    true,
+		initializeEmptyMaps: true,
+	})
+}
+
+func NewBaseNodeForLoad(options BaseNodeOptions) BaseNode {
+	return newBaseNode(options, baseNodeConfig{
+		generateID:          true,
+		cloneProperties:     true,
+		initializeParams:    true,
+		initializeEmptyMaps: true,
+	})
 }
 
 func (node *BaseNode) GetBaseNode() *BaseNode {
@@ -72,9 +108,19 @@ func (node *BaseNode) ExecuteNode(tick *Tick, current Node, callbacks NodeCallba
 	tick.EnterNode(current)
 	callbacks.Enter(tick)
 
-	if !boolValue(tick.Blackboard.Get("isOpen", tick.Tree.Id, baseNode.Id)) {
+	isOpen := false
+	if tick.blackboard != nil {
+		isOpen = tick.blackboard.isNodeOpen(tick.Tree.Id, baseNode.Id)
+	} else {
+		isOpen = boolValue(tick.Blackboard.Get("isOpen", tick.Tree.Id, baseNode.Id))
+	}
+	if !isOpen {
 		tick.OpenNode(current)
-		tick.Blackboard.Set("isOpen", true, tick.Tree.Id, baseNode.Id)
+		if tick.blackboard != nil {
+			tick.blackboard.setNodeOpen(tick.Tree.Id, baseNode.Id, true)
+		} else {
+			tick.Blackboard.Set("isOpen", true, tick.Tree.Id, baseNode.Id)
+		}
 		callbacks.Open(tick)
 	}
 
@@ -94,6 +140,10 @@ func (node *BaseNode) ExecuteNode(tick *Tick, current Node, callbacks NodeCallba
 func (node *BaseNode) CloseNodeWithCallbacks(tick *Tick, current Node, callbacks NodeCallbacks) {
 	baseNode := callbacks.GetBaseNode()
 	tick.CloseNode(current)
-	tick.Blackboard.Set("isOpen", false, tick.Tree.Id, baseNode.Id)
+	if tick.blackboard != nil {
+		tick.blackboard.setNodeOpen(tick.Tree.Id, baseNode.Id, false)
+	} else {
+		tick.Blackboard.Set("isOpen", false, tick.Tree.Id, baseNode.Id)
+	}
 	callbacks.Close(tick)
 }

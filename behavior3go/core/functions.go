@@ -48,6 +48,13 @@ func copyMap(source map[string]any) map[string]any {
 	return target
 }
 
+func clonePropertiesForLoad(source map[string]any) map[string]any {
+	if len(source) == 0 {
+		return nil
+	}
+	return copyMap(source)
+}
+
 func toInt(value any) (int, bool) {
 	switch typed := value.(type) {
 	case int:
